@@ -81,12 +81,14 @@ public class FabricCreator : EditorWindow
         {
             string scriptContent = @"public interface " + IClassName + @"
 {
-    void Action();
+    void Init();
 }";
             File.WriteAllText(scriptPath, scriptContent);
         }
         AssetDatabase.Refresh();
     }
+    
+
     
     private void CreateObjectClass(List<string> ClassName)
     {
@@ -99,9 +101,9 @@ public class FabricCreator : EditorWindow
 
 public class " + className + @":" + IClassName + @"
 {
-    public void Action()
+    public void Init()
     {
-        Console.WriteLine(""No Action Logic implemented in: "" + nameof(" + className + @"));
+        Console.WriteLine(""No Init Logic implemented in: "" + nameof(" + className + @"));
             }
      }
 ";
@@ -173,7 +175,7 @@ public class " + className + @":" + IClassName + @"
     public void CreateAndInitialize" + IClassName.Substring(1) + @"()
     {
         "+ IClassName +" " + subName + @"= fabric.CreateObject();
-        " + subName + @".Action();
+        " + subName + @".Init();
     }
 }";
             File.WriteAllText(scriptPath, scriptContent);
@@ -199,7 +201,7 @@ public class NewFabricImplementation : MonoBehaviour
 {
     private " + IClassName.Substring(1) + "FabricManager" + @" _fabricManager;
     [Header(""Settings"")]
-    [SerializeField]private FabricType myFabricType;
+    [SerializeField]private " + IClassName.Substring(1) + "Type" + @" myFabricType;
     [SerializeField]private float firstSpawnDelay = 1f;
     [SerializeField]private float repeatRate = 1f;
     
@@ -213,12 +215,12 @@ public class NewFabricImplementation : MonoBehaviour
 
     private void Spawn" + IClassName.Substring(1) + @"()
     {
-        _fabricManager.CreateAndInitializeUnit();
+        _fabricManager.CreateAndInitialize" + IClassName.Substring(1) + @"();
     }
 
     private void InitFactory()
     {
-        _fabricManager = new" + IClassName.Substring(1) + "FabricManager" +@"();
+        _fabricManager = new " + IClassName.Substring(1) + "FabricManager" +@"();
         " + GetAllSwitches() + @"
 
     }
@@ -232,7 +234,7 @@ public class NewFabricImplementation : MonoBehaviour
 
     private void CreateFabricEnum()
     {
-        string fabricName = IClassName.Substring(1) + "FabricType";
+        string fabricName = IClassName.Substring(1) + "Type";
         string scriptPath = Path.Combine("Assets", "InternalAssets", "Editor", fabricName + ".cs");
 
         string ClassNamesEnum = "";
@@ -244,7 +246,7 @@ public class NewFabricImplementation : MonoBehaviour
         if (!File.Exists(scriptPath))
         {
             string scriptContent = @"
-    private enum " + fabricName + @"
+    public enum " + fabricName + @"
     {" + ClassNamesEnum + @"}";
 
             File.WriteAllText(scriptPath, scriptContent);
@@ -254,13 +256,18 @@ public class NewFabricImplementation : MonoBehaviour
 
     private string GetAllSwitches()
     {
+        string IfabricName = IClassName + "Fabric";
+
         string myString = @"switch (myFabricType)
         {
 ";
         for (int i = 0; i < classNames.Count; i++)
         {
-            myString += "case FabricType." + classNames[i] + ":\n";
+            myString += "case " + IClassName.Substring(1) + "Type." + classNames[i] + ":\n";
             myString += "{\n";
+            myString += IfabricName +" " + classNames[i].ToLower() + "Fabric" + " = new " + classNames[i]+"Fabric(); \n";
+            myString += "_fabricManager." + "Set" + IClassName + "Fabric" + "(" + classNames[i].ToLower() + "Fabric" +
+                        "); \n";
             myString += "    break;\n";
             myString += "}\n";
         }
