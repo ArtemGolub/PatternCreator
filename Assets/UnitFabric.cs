@@ -1,15 +1,14 @@
 using UnityEngine;
-
-//TODO move to BabricCreator
 public class UnitFabric : MonoBehaviour
 {
     private UnitFabricManager _fabricManager;
     private Transform container;
    
-    [Header("Settings")] [SerializeField] private UnitType myFabricType;
+    [Header("Settings")] 
+    [SerializeField] private UnitType myFabricType;
     [SerializeField] private float firstSpawnDelay = 1f;
     [SerializeField] private float repeatRate = 1f;
-    [SerializeField]private ScriptableUnits settings;
+    [SerializeField] private ScriptableUnits settings;
     [SerializeField] private Transform spawnPoint;
     [SerializeField] private bool isNeedContainer;
     private void Start()
@@ -18,12 +17,10 @@ public class UnitFabric : MonoBehaviour
         InitFactory();
         InvokeRepeating("SpawnUnit", firstSpawnDelay, repeatRate);
     }
-
     private void SpawnUnit()
     {
         _fabricManager.CreateAndInitializeUnit(settings, spawnPoint, container);
     }
-
     private void InitFactory()
     {
         _fabricManager = new UnitFabricManager();
@@ -37,7 +34,6 @@ public class UnitFabric : MonoBehaviour
             }
         }
     }
-
     private void CreateContainer()
     {
         if(!isNeedContainer) return;

@@ -1,5 +1,4 @@
 using UnityEngine;
-//TODO move to BabricCreator
 public class WarriorFabric: MonoBehaviour, IUnitFabric
 {
     private int _ID;
@@ -20,10 +19,7 @@ public class WarriorFabric: MonoBehaviour, IUnitFabric
         {
             objectComponent = newObject.transform.GetComponent<Warrior>();
         }
-
         objectComponent.objectSettings = settings;
-        
         return objectComponent;
     }
-    
 }

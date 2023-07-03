@@ -6,6 +6,14 @@ using UnityEngine;
 public class FabricCreator : EditorWindow
 {
     private string IClassName = "";
+    private string AbstractClassName = "";
+    private string ScriptableName = "";
+
+    private string InterfaceFabricName = "";
+    private string FabricManagerName = "";
+
+    private string ClassTypeEnumName = "";
+    
     private List<string> classNames = new List<string>();
     private int inheritedClassNumber;
     
@@ -57,11 +65,16 @@ public class FabricCreator : EditorWindow
         GUILayout.Space(70);
         if (GUILayout.Button("Generate!"))
         {
+            SetNames();
+            
             CreateObjectInterface();
+            CreateAbstractClass();
             CreateObjectClass(classNames);
+            CreateScriptableOfClass();
 
             CreateFabricInterface();
-
+            CreateObjectsFabric(classNames);
+            
             CreateFabricManager();
 
             CreateFabricImplementation();
@@ -87,8 +100,37 @@ public class FabricCreator : EditorWindow
         }
         AssetDatabase.Refresh();
     }
+
+    private void SetNames()
+    {
+        AbstractClassName =  "A" + IClassName.Substring(1);
+        ScriptableName = "Scriptable" + IClassName.Substring(1);
+        InterfaceFabricName = IClassName + "Fabric";
+        FabricManagerName = IClassName.Substring(1) + "FabricManager";
+        ClassTypeEnumName = IClassName.Substring(1) + "Type";
+    }
+
     
 
+    private void CreateAbstractClass()
+    {
+        string scriptPath = Path.Combine("Assets", "InternalAssets", "Editor", AbstractClassName + ".cs");
+        if (!File.Exists(scriptPath))
+        {
+            string scriptContent = @"using UnityEngine;
+public abstract class " + AbstractClassName + @": MonoBehaviour," + IClassName + @"
+{
+    public " + ScriptableName + @" objectSettings;
+    public void Init()
+    {
+
+    }
+}";
+            File.WriteAllText(scriptPath, scriptContent);
+        }
+        AssetDatabase.Refresh();
+    }
+    
     
     private void CreateObjectClass(List<string> ClassName)
     {
@@ -97,16 +139,11 @@ public class FabricCreator : EditorWindow
             string scriptPath = Path.Combine("Assets", "InternalAssets", "Editor", className + ".cs");
             if (!File.Exists(scriptPath))
             {
-                string scriptContent = @"using System;
-
-public class " + className + @":" + IClassName + @"
+                string scriptContent = @"public class " + className + ": " + AbstractClassName + @"
 {
-    public void Init()
-    {
-        Console.WriteLine(""No Init Logic implemented in: "" + nameof(" + className + @"));
-            }
-     }
-";
+
+
+}";
                 File.WriteAllText(scriptPath, scriptContent);
             }
         }
@@ -114,39 +151,78 @@ public class " + className + @":" + IClassName + @"
         AssetDatabase.Refresh();
     }
 
+    private void CreateScriptableOfClass()
+    {
+        string scriptPath = Path.Combine("Assets", "InternalAssets", "Editor", ScriptableName + ".cs");
+        if (!File.Exists(scriptPath))
+        {
+            string scriptContent = @"
+using UnityEngine;
+[CreateAssetMenu(fileName = """ + IClassName.Substring(1) + @""", menuName = ""ScriptableObjects/ + " + IClassName.Substring(1)+ "s /" + "new"+ IClassName.Substring(1) + @""")]
+    public class " + ScriptableName + @": ScriptableObject
+    {
+        public " + ClassTypeEnumName  + " " + IClassName.Substring(1).ToLower() +@"Type;
+        public GameObject prefab;
+    }
+
+";
+            File.WriteAllText(scriptPath, scriptContent);
+        }
+        AssetDatabase.Refresh();
+    }
 
     private void CreateFabricInterface()
     {
-        string fabricName = IClassName + "Fabric";
-        string scriptPath = Path.Combine("Assets", "InternalAssets", "Editor", fabricName + ".cs");
+        string scriptPath = Path.Combine("Assets", "InternalAssets", "Editor", InterfaceFabricName + ".cs");
         if (!File.Exists(scriptPath))
         {
-            string scriptContent = @"public interface " + fabricName + @"
+            string scriptContent = @"using UnityEngine;
+public interface " + InterfaceFabricName + @"
 {
-   " +IClassName + @" CreateObject();
+   " + IClassName + @" CreateObject(" + ScriptableName + @" settings, Transform spawnPoint, Transform container);
 }";
             File.WriteAllText(scriptPath, scriptContent);
         }
         AssetDatabase.Refresh();
-
-        CreateObjectsFabric(classNames, fabricName);
     }
     
     
-    private void CreateObjectsFabric(List<string> ClassNemes, string FabricName)
+    private void CreateObjectsFabric(List<string> ClassNemes)
     {
         foreach (var className in ClassNemes)
         {
+            var concreteFabricName = className +"Fabric";
             string scriptPath = Path.Combine("Assets", "InternalAssets", "Editor", className +"Fabric.cs");
             if (!File.Exists(scriptPath))
             {
-                string scriptContent = @"public class " + className +"Fabric" + ":"  + FabricName + @"
+                string scriptContent = @"
+using UnityEngine;
+public class " + concreteFabricName + @": MonoBehaviour," + InterfaceFabricName + @"
 {
-    public " + IClassName + @" CreateObject()
+    private int _ID;
+    public " + IClassName + " CreateObject(" + ScriptableName + @" settings, Transform spawnPoint, Transform container)
     {
-        return new " + className + @"();
-    }
-}
+        var newObject = Instantiate(settings.prefab, spawnPoint.position, spawnPoint.rotation);
+        newObject.name += ""ID: "" + _ID;
+                if (container != null)
+                {
+                    newObject.transform.SetParent(container);
+                }
+                " + className + @" objectComponent;
+                if (!newObject.transform.GetComponent<" +className + @">())
+                {
+                    objectComponent = newObject.AddComponent<" + className + @">();
+                }
+                else
+                {
+                    objectComponent = newObject.transform.GetComponent<" + className + @">();
+                }
+                objectComponent.objectSettings = settings;
+                return objectComponent;
+            }
+        }
+
+
 ";
                 File.WriteAllText(scriptPath, scriptContent);
             }
@@ -156,25 +232,24 @@ public class " + className + @":" + IClassName + @"
 
     private void CreateFabricManager()
     {
-        var fabricManagerName = IClassName.Substring(1) + "FabricManager";
-        string fabricName = IClassName + "Fabric";
         var subName = IClassName.Substring(1).ToLower();
         
-        string scriptPath = Path.Combine("Assets", "InternalAssets", "Editor", fabricManagerName + ".cs");
+        string scriptPath = Path.Combine("Assets", "InternalAssets", "Editor", FabricManagerName + ".cs");
         if (!File.Exists(scriptPath))
         {
-            string scriptContent = @"public class " + fabricManagerName + @"
+            string scriptContent = @"using UnityEngine;
+public class " + FabricManagerName + @"
 {
-    private " + fabricName + @" fabric;
+    private " + InterfaceFabricName + @" fabric;
 
-    public void " + "Set" + fabricName + @"(" + fabricName + @" fabric)
+    public void " + "Set" + IClassName.Substring(1)+"Fabric" + @"(" + InterfaceFabricName + @" fabric)
     {
         this.fabric = fabric;
     }
 
-    public void CreateAndInitialize" + IClassName.Substring(1) + @"()
+    public void " + "CreateAndInitialize" + IClassName.Substring(1) + "(" + ScriptableName + @" settings, Transform spawnPoint, Transform container)
     {
-        "+ IClassName +" " + subName + @"= fabric.CreateObject();
+        " + IClassName +" " + subName + @"= fabric.CreateObject(settings, spawnPoint, container);
         " + subName + @".Init();
     }
 }";
@@ -182,8 +257,7 @@ public class " + className + @":" + IClassName + @"
         }
         AssetDatabase.Refresh();
     }
-
-
+    
     private void CreateFabricImplementation()
     {
         CreateFabricEnum();
@@ -194,35 +268,43 @@ public class " + className + @":" + IClassName + @"
         {
             string scriptContent = @"
 
-
 using UnityEngine;
-
-public class NewFabricImplementation : MonoBehaviour
+public class " + fabricName + @" : MonoBehaviour
 {
-    private " + IClassName.Substring(1) + "FabricManager" + @" _fabricManager;
-    [Header(""Settings"")]
-    [SerializeField]private " + IClassName.Substring(1) + "Type" + @" myFabricType;
-    [SerializeField]private float firstSpawnDelay = 1f;
-    [SerializeField]private float repeatRate = 1f;
-    
-
-  
+    private " + FabricManagerName + @" _fabricManager;
+    private Transform container;
+   
+    [Header(""Settings"")] 
+    [SerializeField] private " + ClassTypeEnumName + @" myFabricType;
+    [SerializeField] private float firstSpawnDelay = 1f;
+    [SerializeField] private float repeatRate = 1f;
+    [SerializeField] private " + ScriptableName + @" settings;
+    [SerializeField] private Transform spawnPoint;
+    [SerializeField] private bool isNeedContainer;
     private void Start()
     {
+        CreateContainer();
         InitFactory();
-        InvokeRepeating(""Spawn" + IClassName.Substring(1)+@""", firstSpawnDelay, repeatRate);
+        InvokeRepeating(""Spawn" + IClassName.Substring(1) + @""", firstSpawnDelay, repeatRate);
     }
-
     private void Spawn" + IClassName.Substring(1) + @"()
     {
-        _fabricManager.CreateAndInitialize" + IClassName.Substring(1) + @"();
+        _fabricManager.CreateAndInitialize" + IClassName.Substring(1) + @"(settings, spawnPoint, container);
     }
-
     private void InitFactory()
     {
-        _fabricManager = new " + IClassName.Substring(1) + "FabricManager" +@"();
-        " + GetAllSwitches() + @"
-
+        _fabricManager = new " + FabricManagerName + @"();
+" +
+            GetAllSwitches() + @"
+        
+    }
+    private void CreateContainer()
+    {
+        if(!isNeedContainer) return;
+        var containerObject = new GameObject();
+        container = containerObject.transform;
+        container.name = myFabricType.ToString() + ""Container"";
+        container.SetParent(this.transform);
     }
 }
 ";
@@ -230,12 +312,10 @@ public class NewFabricImplementation : MonoBehaviour
         }
         AssetDatabase.Refresh();
     }
-
-
+    
     private void CreateFabricEnum()
     {
-        string fabricName = IClassName.Substring(1) + "Type";
-        string scriptPath = Path.Combine("Assets", "InternalAssets", "Editor", fabricName + ".cs");
+        string scriptPath = Path.Combine("Assets", "InternalAssets", "Editor", ClassTypeEnumName + ".cs");
 
         string ClassNamesEnum = "";
         foreach (var className in classNames)
@@ -246,7 +326,7 @@ public class NewFabricImplementation : MonoBehaviour
         if (!File.Exists(scriptPath))
         {
             string scriptContent = @"
-    public enum " + fabricName + @"
+    public enum " + ClassTypeEnumName + @"
     {" + ClassNamesEnum + @"}";
 
             File.WriteAllText(scriptPath, scriptContent);
@@ -266,7 +346,7 @@ public class NewFabricImplementation : MonoBehaviour
             myString += "case " + IClassName.Substring(1) + "Type." + classNames[i] + ":\n";
             myString += "{\n";
             myString += IfabricName +" " + classNames[i].ToLower() + "Fabric" + " = new " + classNames[i]+"Fabric(); \n";
-            myString += "_fabricManager." + "Set" + IClassName + "Fabric" + "(" + classNames[i].ToLower() + "Fabric" +
+            myString += "_fabricManager." + "Set" + IClassName.Substring(1) + "Fabric" + "(" + classNames[i].ToLower() + "Fabric" +
                         "); \n";
             myString += "    break;\n";
             myString += "}\n";

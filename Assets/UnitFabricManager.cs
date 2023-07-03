@@ -1,5 +1,4 @@
 using UnityEngine;
-//TODO move to BabricCreator
 public class UnitFabricManager
 {
     private IUnitFabric fabric;
