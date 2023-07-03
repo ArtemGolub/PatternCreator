@@ -1,3 +1,5 @@
+
+
 using UnityEngine;
 public class UnitFabric : MonoBehaviour
 {
@@ -8,7 +10,7 @@ public class UnitFabric : MonoBehaviour
     [SerializeField] private UnitType myFabricType;
     [SerializeField] private float firstSpawnDelay = 1f;
     [SerializeField] private float repeatRate = 1f;
-    [SerializeField] private ScriptableUnits settings;
+    [SerializeField] private ScriptableUnit settings;
     [SerializeField] private Transform spawnPoint;
     [SerializeField] private bool isNeedContainer;
     private void Start()
@@ -24,22 +26,29 @@ public class UnitFabric : MonoBehaviour
     private void InitFactory()
     {
         _fabricManager = new UnitFabricManager();
-        switch (myFabricType)
+switch (myFabricType)
         {
-            case UnitType.Warrior:
-            {
-                IUnitFabric warriorFabric = new WarriorFabric();
-                _fabricManager.SetIUnitFabric(warriorFabric);
-                break;
-            }
-        }
+case UnitType.Warrior:
+{
+IUnitFabric warriorFabric = new WarriorFabric(); 
+_fabricManager.SetUnitFabric(warriorFabric); 
+    break;
+}
+case UnitType.Archer:
+{
+IUnitFabric archerFabric = new ArcherFabric(); 
+_fabricManager.SetUnitFabric(archerFabric); 
+    break;
+}
+}
+        
     }
     private void CreateContainer()
     {
         if(!isNeedContainer) return;
         var containerObject = new GameObject();
         container = containerObject.transform;
-        container.name = myFabricType.ToString() + " Container";
+        container.name = myFabricType.ToString() + "Container";
         container.SetParent(this.transform);
     }
 }

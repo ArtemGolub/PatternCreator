@@ -231,15 +231,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 497728998}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 30ae31cf77756624bb09723feb680de1, type: 3}
+  m_Script: {fileID: 11500000, guid: 77ac13e2a1c1a0f44841f29ca38a5a56, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  myFabricType: 0
-  firstSpawnDelay: 1
-  repeatRate: 1
-  settings: {fileID: 11400000, guid: 3be3ce25c76d05644ab80b6c75aa9b59, type: 2}
-  spawnPoint: {fileID: 636976552}
-  isNeedContainer: 0
 --- !u!1 &636976551
 GameObject:
   m_ObjectHideFlags: 0
